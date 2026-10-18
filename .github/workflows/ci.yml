@@ -1,0 +1,23 @@
+name: Public installer CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install focused test dependencies
+        run: sudo apt-get update && sudo apt-get install -y bats minisign shellcheck
+      - name: Validate public installer
+        run: |
+          bash -n install.sh
+          shellcheck install.sh
+          python3 -m py_compile lib/verify_release.py
+          python3 -m json.tool versions.json >/dev/null
+          bats tests/test_public_installer.bats

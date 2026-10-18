@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "stable": "1.0.0",
+  "releases": {
+    "1.0.0": {
+      "core_commit": "3a4229449281f0edf770fed8c926aeba87b5e17c",
+      "format_schema": 2,
+      "minisign_key_id": "F4CA29FD4BAD4169"
+    }
+  }
+}
