@@ -99,6 +99,17 @@ run_installer() {
     "$TEST_REPO/install.sh" --public-ipv4 203.0.113.10 --protocols anytls
 }
 
+@test "repository pins the formal Hkit 1.0 signing identity" {
+  project_root="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
+  [ "$(shasum -a 256 "$project_root/keys/hkit-core.pub" | awk '{print $1}')" = \
+    de9828796091fad0a1568ec1af2f5f4825c97b50675d84228991f83177f36e74 ]
+  grep -F 'minisign public key A7178F5CF94B2F7D' "$project_root/keys/hkit-core.pub"
+  [ "$(jq -r '.releases["1.0.0"].minisign_key_id' "$project_root/versions.json")" = \
+    A7178F5CF94B2F7D ]
+  grep -F 'readonly HKIT_PUBLIC_KEY_SHA256="de9828796091fad0a1568ec1af2f5f4825c97b50675d84228991f83177f36e74"' \
+    "$project_root/install.sh"
+}
+
 @test "signed format 2 release reaches the verified Core installer" {
   run_installer
   [ "$status" -eq 0 ]
@@ -121,6 +132,18 @@ run_installer() {
 
 @test "invalid signature stops before archive processing" {
   printf '\n' >> "$TEST_RELEASE/manifest.json"
+  run_installer
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"hkit_bootstrap_error:signature_invalid"* ]]
+  [ ! -e "$TEST_CAPTURE" ]
+}
+
+@test "manifest signed by another key is rejected" {
+  minisign -G -W -s "$BATS_TEST_TMPDIR/wrong.key" -p "$BATS_TEST_TMPDIR/wrong.pub" \
+    >/dev/null 2>&1
+  rm "$TEST_RELEASE/manifest.json.minisig"
+  minisign -S -s "$BATS_TEST_TMPDIR/wrong.key" -m "$TEST_RELEASE/manifest.json" \
+    -x "$TEST_RELEASE/manifest.json.minisig" -q >/dev/null 2>&1
   run_installer
   [ "$status" -ne 0 ]
   [[ "$output" == *"hkit_bootstrap_error:signature_invalid"* ]]

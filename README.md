@@ -6,7 +6,7 @@ It does not contain the Core source code or its Git history.
 ## Security model
 
 The installer is pinned to Hkit `1.0.0` and Minisign key
-`F4CA29FD4BAD4169`. Before any Core installer code runs it verifies:
+`A7178F5CF94B2F7D`. Before any Core installer code runs it verifies:
 
 1. the detached Minisign signature on `manifest.json`;
 2. the manifest schema, product, version, and release format;

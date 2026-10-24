@@ -3,7 +3,7 @@ set -euo pipefail
 
 readonly HKIT_VERSION="1.0.0"
 readonly HKIT_RELEASE_BASE_URL="https://github.com/hcloudlab/Hkit/releases/download/v${HKIT_VERSION}"
-readonly HKIT_PUBLIC_KEY_SHA256="2a4933c0d1b48811bc7c17baff28c17558d342f3ccc091b1133b5c81c4c01c04"
+readonly HKIT_PUBLIC_KEY_SHA256="de9828796091fad0a1568ec1af2f5f4825c97b50675d84228991f83177f36e74"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly SCRIPT_DIR
 HKIT_BOOTSTRAP_WORK_DIR=""

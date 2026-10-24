@@ -8,36 +8,38 @@
 - The public GitHub Release receives the three signed release-contract files;
   it does not receive the private repository or signing key.
 
-## Required GitHub configuration
+## Formal signing identity
 
-Create a protected GitHub Environment named `production-release` in
-`hcloudlab/Hkit-core` with a required reviewer. Configure these environment
-secrets:
+Hkit 1.0 trusts Minisign key `A7178F5CF94B2F7D`. The matching public key in
+`keys/hkit-core.pub` has SHA-256
+`de9828796091fad0a1568ec1af2f5f4825c97b50675d84228991f83177f36e74`.
 
-- `HKIT_PUBLIC_RELEASE_TOKEN`: fine-grained token restricted to
-  `hcloudlab/Hkit`, with repository Contents read/write permission only.
-- `HKIT_MINISIGN_SECRET_KEY_B64`: base64 encoding of the encrypted Minisign
-  secret-key file.
-- `HKIT_MINISIGN_PASSWORD`: password for that encrypted key.
+The encrypted private key exists only on the release operator's local Mac.
+GitHub Actions performs credential-free build and validation with an ephemeral
+test key; it never receives the formal private key, its password, or a
+production release token. Formal signing and Draft Release upload are separate
+local operations documented in Hkit-core.
 
-The workflow's normal `GITHUB_TOKEN` remains read-only and cannot publish to
-the public repository. Do not use an organization-wide classic token.
+The former key `F4CA29FD4BAD4169` was retired before any Hkit 1.0 Tag or Release
+was published. Its local files are retained for audit only and must not sign a
+Hkit 1.0 release.
 
 ## Manual release gate
 
-The private workflow `.github/workflows/release-public.yml` is manual. It:
+The private workflow `.github/workflows/release-public.yml` is credential-free.
+It:
 
 1. requires the exact approved Core commit;
 2. downloads the five pinned official Linux x86_64 component assets;
 3. checks every pinned SHA-256 before extraction;
 4. builds release format 2 with the production builder;
-5. verifies the signature and archive contract again;
+5. verifies the ephemeral signature and archive contract again;
 6. checks out the public repository and verifies its `versions.json` mapping;
-7. creates a **draft** public release containing exactly the three assets.
+7. creates immutable validation evidence without publishing a release.
 
-Creating or publishing the final `v1.0.0` tag/release is a human approval
-step. The workflow must not be run until the environment and secrets above are
-configured and the public installer commit is reviewed.
+The reviewed Core release tools then build and sign locally with the encrypted
+formal key. Creating or publishing the final `v1.0.0` tag/release remains a
+separate human-approved step. No GitHub-hosted workflow may sign or publish it.
 
 ## Release assets
 
