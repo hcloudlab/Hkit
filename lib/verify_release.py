@@ -18,6 +18,8 @@ COMPONENTS = ("xray", "hysteria2", "mieru", "sing-box", "caddy")
 INSTALLER_FILES = (
     "hkit-install.sh",
     "lib/constants.sh",
+    "lib/hkit_compat.sh",
+    "lib/hkit_atomic_replace.py",
     "lib/hkit_artifacts.sh",
     "lib/hkit_commit_health.sh",
     "lib/hkit_install.sh",

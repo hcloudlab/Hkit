@@ -1,4 +1,4 @@
-# Hkit 1.0 release procedure
+# Hkit 1.0.1 release procedure
 
 ## Repository boundary
 
@@ -10,7 +10,7 @@
 
 ## Formal signing identity
 
-Hkit 1.0 trusts Minisign key `A7178F5CF94B2F7D`. The matching public key in
+Hkit 1.0.x trusts Minisign key `A7178F5CF94B2F7D`. The matching public key in
 `keys/hkit-core.pub` has SHA-256
 `de9828796091fad0a1568ec1af2f5f4825c97b50675d84228991f83177f36e74`.
 
@@ -38,7 +38,7 @@ It:
 7. creates immutable validation evidence without publishing a release.
 
 The reviewed Core release tools then build and sign locally with the encrypted
-formal key. Creating or publishing the final `v1.0.0` tag/release remains a
+formal key. Creating or publishing the final `v1.0.1` tag/release remains a
 separate human-approved step. No GitHub-hosted workflow may sign or publish it.
 
 ## Release assets
@@ -55,8 +55,13 @@ Before publishing, download the draft assets into a clean directory and run:
 
 ```bash
 minisign -Vm manifest.json -x manifest.json.minisig -p keys/hkit-core.pub
-python3 lib/verify_release.py manifest.json hkit-core.tar 1.0.0 extracted
+python3 lib/verify_release.py manifest.json hkit-core.tar 1.0.1 extracted
 ```
 
 Only publish after both commands pass and the public tag points at the reviewed
 installer commit.
+
+The `v1.0.0` release and its assets are immutable history. Version `1.0.1`
+keeps the same signing identity and component versions while correcting the
+Format 2 installer dependency closure. The public URL command must reference
+the fixed `v1.0.1` tag, never the floating `main` branch.

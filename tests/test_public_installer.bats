@@ -43,8 +43,8 @@ spec.loader.exec_module(module)
 root = Path(sys.argv[2])
 components = {"xray":"26.7.28","hysteria2":"2.6.5","mieru":"3.37.0","sing-box":"1.12.0","caddy":"2.10.2"}
 release = {
-    "schema_version":1,"release_id":"rel-1.0.0","release_version":"1.0.0",
-    "state_schema_version":1,"directory":"/opt/hkit/releases/1.0.0",
+    "schema_version":1,"release_id":"rel-1.0.1","release_version":"1.0.1",
+    "state_schema_version":1,"directory":"/opt/hkit/releases/1.0.1",
     "components":{name:{"version":version,"path":f"/opt/hkit/components/{name}/{version}/{name}"}
                   for name, version in components.items()},
 }
@@ -67,7 +67,7 @@ with tarfile.open(archive_path, "w", format=tarfile.USTAR_FORMAT) as archive:
 content = archive_path.read_bytes()
 manifest = {
     "manifest_schema":1,"product":"hkit-core",
-    "release":{"id":"rel-1.0.0","version":"1.0.0","format_schema":2,"state_schema_min":1,"state_schema_max":1},
+    "release":{"id":"rel-1.0.1","version":"1.0.1","format_schema":2,"state_schema_min":1,"state_schema_max":1},
     "artifact":{"filename":"hkit-core.tar","sha256":hashlib.sha256(content).hexdigest(),"size":len(content)},
     "components":components,
 }
@@ -89,7 +89,12 @@ while (($#)); do
   url="$1"
   shift
 done
-cp "$TEST_RELEASE/${url##*/}" "$destination"
+case "$url" in
+  */keys/hkit-core.pub) source="$TEST_REPO/keys/hkit-core.pub" ;;
+  */lib/verify_release.py) source="$TEST_REPO/lib/verify_release.py" ;;
+  *) source="$TEST_RELEASE/${url##*/}" ;;
+esac
+cp "$source" "$destination"
 SH
   chmod +x "$TEST_BIN/id" "$TEST_BIN/curl"
 }
@@ -99,15 +104,64 @@ run_installer() {
     "$TEST_REPO/install.sh" --public-ipv4 203.0.113.10 --protocols anytls
 }
 
-@test "repository pins the formal Hkit 1.0 signing identity" {
+run_stdin_installer() {
+  run env PATH="$TEST_BIN:$PATH" TEST_CAPTURE="$TEST_CAPTURE" TEST_RELEASE="$TEST_RELEASE" \
+    TEST_REPO="$TEST_REPO" bash -c \
+    'cat "$TEST_REPO/install.sh" | bash -s -- --public-ipv4 203.0.113.10 --protocols anytls'
+}
+
+remove_installer_member_and_resign() {
+  local member="$1"
+  python3 - "$TEST_RELEASE" "$member" <<'PY'
+import hashlib
+import json
+from pathlib import Path
+import sys
+import tarfile
+
+root = Path(sys.argv[1])
+excluded = f"installer/{sys.argv[2]}"
+archive_path = root / "hkit-core.tar"
+replacement = root / "replacement.tar"
+with tarfile.open(archive_path, "r:") as source, tarfile.open(replacement, "w", format=tarfile.USTAR_FORMAT) as output:
+    for member in source.getmembers():
+        if member.name == excluded:
+            continue
+        stream = source.extractfile(member)
+        output.addfile(member, stream)
+replacement.replace(archive_path)
+content = archive_path.read_bytes()
+manifest_path = root / "manifest.json"
+manifest = json.loads(manifest_path.read_text())
+manifest["artifact"]["sha256"] = hashlib.sha256(content).hexdigest()
+manifest["artifact"]["size"] = len(content)
+manifest_path.write_text(json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\n")
+PY
+  rm "$TEST_RELEASE/manifest.json.minisig"
+  minisign -S -s "$BATS_TEST_TMPDIR/test.key" -m "$TEST_RELEASE/manifest.json" \
+    -x "$TEST_RELEASE/manifest.json.minisig" -q >/dev/null 2>&1
+}
+
+@test "repository pins the formal Hkit 1.0.1 signing identity" {
   project_root="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   [ "$(shasum -a 256 "$project_root/keys/hkit-core.pub" | awk '{print $1}')" = \
     de9828796091fad0a1568ec1af2f5f4825c97b50675d84228991f83177f36e74 ]
   grep -F 'minisign public key A7178F5CF94B2F7D' "$project_root/keys/hkit-core.pub"
-  [ "$(jq -r '.releases["1.0.0"].minisign_key_id' "$project_root/versions.json")" = \
+  [ "$(jq -r '.stable' "$project_root/versions.json")" = 1.0.1 ]
+  [ "$(jq -r '.releases["1.0.1"].minisign_key_id' "$project_root/versions.json")" = \
     A7178F5CF94B2F7D ]
   grep -F 'readonly HKIT_PUBLIC_KEY_SHA256="de9828796091fad0a1568ec1af2f5f4825c97b50675d84228991f83177f36e74"' \
     "$project_root/install.sh"
+}
+
+@test "URL bootstrap is version pinned and works from standard input" {
+  grep -F 'readonly HKIT_VERSION="1.0.1"' "$TEST_REPO/install.sh"
+  grep -F 'raw.githubusercontent.com/hcloudlab/Hkit/v${HKIT_VERSION}' "$TEST_REPO/install.sh"
+  ! grep -F 'raw.githubusercontent.com/hcloudlab/Hkit/main/' "$TEST_REPO/install.sh"
+  run_stdin_installer
+  [ "$status" -eq 0 ]
+  grep -Fx -- 203.0.113.10 "$TEST_CAPTURE"
+  grep -Fx -- anytls "$TEST_CAPTURE"
 }
 
 @test "signed format 2 release reaches the verified Core installer" {
@@ -115,10 +169,43 @@ run_installer() {
   [ "$status" -eq 0 ]
   [ "$(sed -n '1p' "$TEST_CAPTURE")" = --release-source ]
   [ "$(sed -n '3p' "$TEST_CAPTURE")" = --release-version ]
-  [ "$(sed -n '4p' "$TEST_CAPTURE")" = 1.0.0 ]
+  [ "$(sed -n '4p' "$TEST_CAPTURE")" = 1.0.1 ]
   [ "$(sed -n '5p' "$TEST_CAPTURE")" = --trust-key ]
   grep -Fx -- 203.0.113.10 "$TEST_CAPTURE"
   grep -Fx -- anytls "$TEST_CAPTURE"
+}
+
+@test "format 2 requires compatibility and atomic persistence dependencies" {
+  python3 - "$TEST_REPO/lib/verify_release.py" "$TEST_RELEASE/hkit-core.tar" <<'PY'
+import importlib.util
+import sys
+import tarfile
+
+spec = importlib.util.spec_from_file_location("verifier", sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+required = {"lib/hkit_compat.sh", "lib/hkit_atomic_replace.py"}
+assert required.issubset(set(module.INSTALLER_FILES))
+with tarfile.open(sys.argv[2], "r:") as archive:
+    members = {member.name for member in archive.getmembers()}
+assert {f"installer/{path}" for path in required}.issubset(members)
+PY
+}
+
+@test "release missing compatibility dependency is rejected before Core execution" {
+  remove_installer_member_and_resign lib/hkit_compat.sh
+  run_installer
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"hkit_bootstrap_error:release_invalid"* ]]
+  [ ! -e "$TEST_CAPTURE" ]
+}
+
+@test "release missing atomic persistence dependency is rejected before Core execution" {
+  remove_installer_member_and_resign lib/hkit_atomic_replace.py
+  run_installer
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"hkit_bootstrap_error:release_invalid"* ]]
+  [ ! -e "$TEST_CAPTURE" ]
 }
 
 @test "download failure stops before Core execution" {
