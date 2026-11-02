@@ -25,6 +25,13 @@ PY
   minisign -S -s "$BATS_TEST_TMPDIR/test.key" -m "$TEST_RELEASE/manifest.json" \
     -x "$TEST_RELEASE/manifest.json.minisig" -q >/dev/null 2>&1
   make_command_mocks
+  export HKIT_BOOTSTRAP_OS_RELEASE="$BATS_TEST_TMPDIR/os-release"
+  write_os_release ubuntu 24.04
+  export HKIT_BOOTSTRAP_ARCH=x86_64
+}
+
+write_os_release() {
+  printf 'ID=%s\nVERSION_ID="%s"\n' "$1" "$2" > "$HKIT_BOOTSTRAP_OS_RELEASE"
 }
 
 build_fixture() {
@@ -43,8 +50,8 @@ spec.loader.exec_module(module)
 root = Path(sys.argv[2])
 components = {"xray":"26.7.28","hysteria2":"2.6.5","mieru":"3.37.0","sing-box":"1.12.0","caddy":"2.10.2"}
 release = {
-    "schema_version":1,"release_id":"rel-1.0.1","release_version":"1.0.1",
-    "state_schema_version":1,"directory":"/opt/hkit/releases/1.0.1",
+    "schema_version":1,"release_id":"rel-1.0.2","release_version":"1.0.2",
+    "state_schema_version":1,"directory":"/opt/hkit/releases/1.0.2",
     "components":{name:{"version":version,"path":f"/opt/hkit/components/{name}/{version}/{name}"}
                   for name, version in components.items()},
 }
@@ -67,7 +74,7 @@ with tarfile.open(archive_path, "w", format=tarfile.USTAR_FORMAT) as archive:
 content = archive_path.read_bytes()
 manifest = {
     "manifest_schema":1,"product":"hkit-core",
-    "release":{"id":"rel-1.0.1","version":"1.0.1","format_schema":2,"state_schema_min":1,"state_schema_max":1},
+    "release":{"id":"rel-1.0.2","version":"1.0.2","format_schema":2,"state_schema_min":1,"state_schema_max":1},
     "artifact":{"filename":"hkit-core.tar","sha256":hashlib.sha256(content).hexdigest(),"size":len(content)},
     "components":components,
 }
@@ -89,6 +96,7 @@ while (($#)); do
   url="$1"
   shift
 done
+printf '%s\n' "$url" >> "$TEST_RELEASE/../downloads.log"
 case "$url" in
   */keys/hkit-core.pub) source="$TEST_REPO/keys/hkit-core.pub" ;;
   */lib/verify_release.py) source="$TEST_REPO/lib/verify_release.py" ;;
@@ -142,22 +150,23 @@ PY
     -x "$TEST_RELEASE/manifest.json.minisig" -q >/dev/null 2>&1
 }
 
-@test "repository pins the formal Hkit 1.0.1 signing identity" {
+@test "repository pins the formal Hkit 1.0.2 signing identity" {
   project_root="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   [ "$(shasum -a 256 "$project_root/keys/hkit-core.pub" | awk '{print $1}')" = \
     de9828796091fad0a1568ec1af2f5f4825c97b50675d84228991f83177f36e74 ]
   grep -F 'minisign public key A7178F5CF94B2F7D' "$project_root/keys/hkit-core.pub"
-  [ "$(jq -r '.stable' "$project_root/versions.json")" = 1.0.1 ]
-  [ "$(jq -r '.releases["1.0.1"].minisign_key_id' "$project_root/versions.json")" = \
+  [ "$(jq -r '.stable' "$project_root/versions.json")" = 1.0.2 ]
+  [ "$(jq -r '.releases["1.0.2"].minisign_key_id' "$project_root/versions.json")" = \
     A7178F5CF94B2F7D ]
   grep -F 'readonly HKIT_PUBLIC_KEY_SHA256="de9828796091fad0a1568ec1af2f5f4825c97b50675d84228991f83177f36e74"' \
     "$project_root/install.sh"
 }
 
 @test "URL bootstrap is version pinned and works from standard input" {
-  grep -F 'readonly HKIT_VERSION="1.0.1"' "$TEST_REPO/install.sh"
+  grep -F 'readonly HKIT_VERSION="1.0.2"' "$TEST_REPO/install.sh"
   grep -F 'raw.githubusercontent.com/hcloudlab/Hkit/v${HKIT_VERSION}' "$TEST_REPO/install.sh"
-  ! grep -F 'raw.githubusercontent.com/hcloudlab/Hkit/main/' "$TEST_REPO/install.sh"
+  run grep -F 'raw.githubusercontent.com/hcloudlab/Hkit/main/' "$TEST_REPO/install.sh"
+  [ "$status" -ne 0 ]
   run_stdin_installer
   [ "$status" -eq 0 ]
   grep -Fx -- 203.0.113.10 "$TEST_CAPTURE"
@@ -169,7 +178,7 @@ PY
   [ "$status" -eq 0 ]
   [ "$(sed -n '1p' "$TEST_CAPTURE")" = --release-source ]
   [ "$(sed -n '3p' "$TEST_CAPTURE")" = --release-version ]
-  [ "$(sed -n '4p' "$TEST_CAPTURE")" = 1.0.1 ]
+  [ "$(sed -n '4p' "$TEST_CAPTURE")" = 1.0.2 ]
   [ "$(sed -n '5p' "$TEST_CAPTURE")" = --trust-key ]
   grep -Fx -- 203.0.113.10 "$TEST_CAPTURE"
   grep -Fx -- anytls "$TEST_CAPTURE"
@@ -275,4 +284,32 @@ PY
   [ "$status" -ne 0 ]
   [[ "$output" == *"hkit_bootstrap_error:release_invalid"* ]]
   [ ! -e "$TEST_CAPTURE" ]
+}
+
+@test "Debian 12 and 13 and Ubuntu 22.04 pass the platform check" {
+  for platform in "debian 12" "debian 13" "ubuntu 22.04"; do
+    rm -f "$TEST_CAPTURE"
+    # shellcheck disable=SC2086
+    write_os_release $platform
+    run_installer
+    [ "$status" -eq 0 ]
+    [ -f "$TEST_CAPTURE" ]
+  done
+}
+
+@test "unsupported systems are rejected before any download" {
+  write_os_release centos 9
+  run_installer
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"hkit_bootstrap_error:unsupported_platform:"* ]]
+  [ ! -f "$TEST_CAPTURE" ]
+  [ ! -s "$BATS_TEST_TMPDIR/downloads.log" ]
+}
+
+@test "non-x86_64 servers are rejected with a clear message" {
+  export HKIT_BOOTSTRAP_ARCH=aarch64
+  run_installer
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"only x86_64"* ]]
+  [ ! -f "$TEST_CAPTURE" ]
 }
