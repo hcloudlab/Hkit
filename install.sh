@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly HKIT_VERSION="1.0.1"
+readonly HKIT_VERSION="1.0.2"
 readonly HKIT_RELEASE_BASE_URL="https://github.com/hcloudlab/Hkit/releases/download/v${HKIT_VERSION}"
 readonly HKIT_PUBLIC_SOURCE_BASE_URL="https://raw.githubusercontent.com/hcloudlab/Hkit/v${HKIT_VERSION}"
 readonly HKIT_PUBLIC_KEY_SHA256="de9828796091fad0a1568ec1af2f5f4825c97b50675d84228991f83177f36e74"
@@ -36,7 +36,7 @@ installer_require_bootstrap_dependencies() {
   local missing
   missing="$(installer_missing_commands awk curl id install minisign mktemp python3 sha256sum)"
   [[ -z "$missing" ]] || {
-    installer_error dependency_missing "missing commands:$missing; on Ubuntu run: apt-get update && apt-get install -y ca-certificates coreutils curl iproute2 jq libdigest-sha-perl minisign openssl passwd python3 systemd util-linux"
+    installer_error dependency_missing "missing commands:$missing; on Ubuntu/Debian run: apt-get update && apt-get install -y ca-certificates coreutils curl iproute2 jq libdigest-sha-perl minisign openssl passwd python3 systemd util-linux"
     return 1
   }
 }
@@ -52,11 +52,14 @@ installer_prepare_dependencies() {
   fi
   # shellcheck disable=SC1091
   source /etc/os-release
-  if [[ "${ID:-}" != ubuntu ]]; then
-    installer_require_bootstrap_dependencies
-    return
-  fi
-  printf 'Installing required Hkit packages on Ubuntu...\n'
+  case "${ID:-}" in
+    ubuntu|debian) ;;
+    *)
+      installer_require_bootstrap_dependencies
+      return
+      ;;
+  esac
+  printf 'Installing required Hkit packages on %s %s...\n' "${ID:-}" "${VERSION_ID:-}"
   apt-get update || {
     installer_error dependency_install_failed "apt-get update failed"
     return 1
@@ -69,7 +72,7 @@ installer_prepare_dependencies() {
   }
   installer_require_bootstrap_dependencies
   [[ -z "$(installer_missing_commands base64 flock groupadd jq openssl readlink sed shasum ss systemctl useradd)" ]] || {
-    installer_error dependency_install_failed "Ubuntu runtime commands remain unavailable after package installation"
+    installer_error dependency_install_failed "runtime commands remain unavailable after package installation"
     return 1
   }
 }
@@ -117,9 +120,35 @@ installer_prepare_public_file() {
   }
 }
 
+installer_require_platform() {
+  local os_id="" version_id="" arch os_release="${HKIT_BOOTSTRAP_OS_RELEASE:-/etc/os-release}"
+  if [[ -r "$os_release" ]]; then
+    # shellcheck disable=SC1090
+    os_id="$(. "$os_release"; printf '%s' "${ID:-}")"
+    # shellcheck disable=SC1090
+    version_id="$(. "$os_release"; printf '%s' "${VERSION_ID:-}")"
+  fi
+  case "$os_id:$version_id" in
+    ubuntu:22.04|ubuntu:24.04|debian:12|debian:13) ;;
+    *)
+      installer_error unsupported_platform "supported systems: Ubuntu 22.04/24.04, Debian 12/13 (found ${os_id:-unknown} ${version_id:-unknown})"
+      return 1
+      ;;
+  esac
+  arch="${HKIT_BOOTSTRAP_ARCH:-$(uname -m)}"
+  case "$arch" in
+    x86_64|amd64) ;;
+    *)
+      installer_error unsupported_platform "only x86_64 (amd64) servers are supported (found $arch)"
+      return 1
+      ;;
+  esac
+}
+
 main() {
   local bundle_dir extract_dir trusted_key verifier key_sha asset
   installer_require_root
+  installer_require_platform
   installer_prepare_dependencies
 
   HKIT_BOOTSTRAP_WORK_DIR="$(mktemp -d /tmp/hkit-bootstrap.XXXXXX)"
