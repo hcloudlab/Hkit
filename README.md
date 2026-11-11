@@ -8,7 +8,7 @@ Hkit 在一台全新的 VPS 上一键部署以下协议，并自动提供一个�
 | Hysteria2 | Hysteria | 8443/UDP | 线路丢包多、需要高速时 |
 | VLESS XHTTP | Xray | 8443/TCP | 备用 TCP 协议 |
 | AnyTLS | sing-box | 8444/TCP | 备用 TCP 协议 |
-| Mieru | mita | 34567/TCP | 备用，仅 Mihomo 内核客户端可用 |
+| Mieru | mita | 34567/TCP | 备用，Mihomo 内核客户端和小火箭可用 |
 
 **English:** see [README_EN.md](README_EN.md).
 
@@ -51,7 +51,7 @@ apt-get update && apt-get install -y curl
 ### 方式 A：安装全部协议
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.2/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.3/install.sh | sudo bash
 ```
 
 ### 方式 B：只安装指定协议（推荐）
@@ -59,7 +59,7 @@ curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.2/install.sh | 
 例如只装 Reality 和 Hysteria2：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.2/install.sh | \
+curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.3/install.sh | \
   sudo bash -s -- --protocols reality,hysteria2
 ```
 
@@ -68,7 +68,7 @@ curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.2/install.sh | 
 ### 方式 C：用菜单选择
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.2/install.sh | \
+curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.3/install.sh | \
   sudo bash -s -- --interactive
 ```
 
@@ -78,7 +78,7 @@ curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.2/install.sh | 
 
 1. 脚本会自动检测服务器公网 IPv4，并显示出来。检测不准时用 `--public-ipv4 你的IP` 手动指定。
 2. 下载约 160 MB 的安装包，先校验数字签名和哈希，校验不通过不会执行任何安装代码。
-3. 安装完成后显示每个协议的端口和需要放行的防火墙命令。
+3. 如果服务器启用了 UFW 或 firewalld，自动放行所装协议的端口；安装完成后显示每个协议的端口。
 4. 自动启动订阅服务，并向 Let's Encrypt 申请这台服务器 IP 的 HTTPS 证书（不需要域名）。
 5. 安装中途出错时，脚本会自动清理已安装的部分，修复问题后直接重新运行即可。
 
@@ -86,13 +86,18 @@ curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.2/install.sh | 
 
 ## 三、放行防火墙端口（重要）
 
-Hkit **不会自动修改防火墙**。安装完成后，按屏幕提示放行端口，常见有两处：
+端口需要在两处放行：
 
-**1. VPS 服务商的安全组 / 云防火墙**（阿里云、腾讯云、AWS、搬瓦工等后台）
+**1. VPS 服务商的安全组 / 云防火墙**（阿里云、腾讯云、AWS 等后台）
 
-在控制台里放行对应端口。注意 Hysteria2 是 **UDP**，其他协议是 **TCP**。
+脚本改不了服务商后台，需要你在控制台里放行对应端口。注意 Hysteria2 是 **UDP**，其他协议是 **TCP**。搬瓦工默认没有这一层。
 
-**2. 服务器本机的 UFW**（只有你启用了 UFW 才需要）
+**2. 服务器本机的防火墙**
+
+- **已启用 UFW 或 firewalld：安装时自动放行**，只放行本次安装的协议端口，以及订阅需要的 2096/TCP、80/TCP。新加的规则记在 `/etc/hkit/firewall-rules`，`hkit uninstall` 时只删除这些规则，你原来的规则不受影响。
+- Hkit **不会启用、重置防火墙，也不改默认策略**；没启用防火墙就不动。
+- 有自定义 nftables / iptables 规则时不自动修改，只提示需要放行的端口。
+- 不想让脚本修改防火墙：安装时加 `--no-firewall`，然后手动放行：
 
 ```bash
 sudo ufw allow 443/tcp     # Reality
@@ -127,6 +132,9 @@ https://你的IP:2096/随机令牌/shadowrocket
 Clash Verge / Mihomo
 https://你的IP:2096/随机令牌/clash
 
+Clash Verge / Mihomo（仅 Mieru 节点）
+https://你的IP:2096/随机令牌/clash-mieru
+
 v2rayN
 https://你的IP:2096/随机令牌/v2rayn
 
@@ -141,7 +149,7 @@ https://你的IP:2096/随机令牌/singbox
 
 | 客户端 | 导入位置 | 订阅内容 |
 | --- | --- | --- |
-| 小火箭 Shadowrocket | 首页右上角 `+` → 类型选 Subscribe → 粘贴 URL | 全部节点的分享链接 |
+| 小火箭 Shadowrocket | 首页右上角 `+` → 类型选 Subscribe → 粘贴 URL | 全部节点的分享链接（含 Mieru） |
 | Clash Verge Rev / Mihomo Party / FlClash | 订阅 → 粘贴链接 → 导入 | 完整配置：国内直连、其余走代理，含"自动选择"节点组 |
 | v2rayN | 订阅分组 → 订阅分组设置 → 添加 → 粘贴 URL → 更新订阅 | 全部节点的分享链接 |
 | v2rayNG | 右上角菜单 → 订阅分组设置 → `+` → 粘贴 URL → 更新订阅 | 全部节点的分享链接 |
@@ -159,7 +167,7 @@ https://你的IP:2096/随机令牌/singbox
 | Hysteria2 | 有 | 有 | 有 |
 | XHTTP | 有 | 有 | 无（sing-box 不支持 XHTTP） |
 | AnyTLS | 有 | 有 | 有 |
-| Mieru | 无（没有通用链接格式） | 有 | 无 |
+| Mieru | 仅小火箭（`mierus://` 链接）；v2rayN / v2rayNG 无 | 有（另有只含 Mieru 的 `clash-mieru` 订阅） | 无 |
 
 > 各客户端对协议的支持随版本变化，导入失败时请先把客户端更新到最新版。
 
@@ -213,7 +221,7 @@ Hysteria2、XHTTP、AnyTLS 使用每台服务器随机生成的自签名证书�
 sudo hkit uninstall
 ```
 
-输入 `yes` 确认后，会删除 Hkit 的全部服务、配置、证书和节点信息。之前为 Hkit 放行的防火墙端口需要你自己关闭。
+输入 `yes` 确认后，会删除 Hkit 的全部服务、配置、证书和节点信息，并删除安装时自动添加的 UFW / firewalld 规则。手动放行的端口和云服务商安全组里的规则需要你自己关闭。
 
 ---
 
@@ -236,11 +244,12 @@ sudo hkit uninstall
 | `--tls-sni NAME` | 自签证书使用的域名 | 每台服务器随机 |
 | `--sub-port PORT` | 订阅服务的 HTTPS 端口 | 2096 |
 | `--no-subscription` | 不启动订阅服务（只提供单个节点链接和配置文件） | — |
+| `--no-firewall` | 不自动放行 UFW / firewalld 端口 | — |
 
 示例：Reality 改用 8080 端口，并换一个目标站点：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.2/install.sh | \
+curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.3/install.sh | \
   sudo bash -s -- --protocols reality --reality-port 8080 \
   --reality-target www.microsoft.com:443 --reality-sni www.microsoft.com
 ```
@@ -293,7 +302,7 @@ VPS 访问不了候选站点，或者你指定的站点不满足 Reality 要求�
 
 ## 安全说明
 
-- 安装脚本固定在具体版本标签（如 `v1.0.2`），不会跟随 `main` 分支变化。
+- 安装脚本固定在具体版本标签（如 `v1.0.3`），不会跟随 `main` 分支变化。
 - 正式发布包使用 Minisign 签名，签名公钥和校验脚本的 SHA-256 写死在 `install.sh` 中；签名、哈希、文件清单任何一项不符都会在执行安装代码前终止。
 - 不修改 SSH、UFW、BBR/sysctl 等系统设置。
 - 各协议服务使用独立的低权限系统用户运行，并禁止代理流量访问服务器本机和内网地址（包括云厂商元数据地址）。

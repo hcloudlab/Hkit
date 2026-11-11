@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly HKIT_VERSION="1.0.2"
+readonly HKIT_VERSION="1.0.3"
 readonly HKIT_RELEASE_BASE_URL="https://github.com/hcloudlab/Hkit/releases/download/v${HKIT_VERSION}"
 readonly HKIT_PUBLIC_SOURCE_BASE_URL="https://raw.githubusercontent.com/hcloudlab/Hkit/v${HKIT_VERSION}"
 readonly HKIT_PUBLIC_KEY_SHA256="de9828796091fad0a1568ec1af2f5f4825c97b50675d84228991f83177f36e74"
