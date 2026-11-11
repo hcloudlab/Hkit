@@ -29,18 +29,18 @@ On a clean Ubuntu 24.04 x86_64 server, install `curl` if it is not already
 available, then run the version-pinned URL installer:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.1/install.sh | \
+curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.3/install.sh | \
   sudo bash -s -- --public-ipv4 YOUR_PUBLIC_IPV4
 ```
 
 Select protocols through the same verified installer:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.1/install.sh | \
+curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.3/install.sh | \
   sudo bash -s -- --public-ipv4 YOUR_PUBLIC_IPV4 --protocols reality,xhttp
 ```
 
-The bootstrap URL is pinned to the immutable `v1.0.1` tag rather than
+The bootstrap URL is pinned to the immutable `v1.0.3` tag rather than
 `main`. The bootstrap retrieves its public key, verifier, and three release
 assets from that same fixed version, verifies their pinned identities and the
 formal Minisign signature, and only then executes the packaged Core installer.
@@ -49,9 +49,13 @@ It installs missing Ubuntu runtime dependencies through `apt` when necessary.
 For development or offline inspection, clone the matching tag and invoke
 `sudo ./install.sh` with the same arguments.
 
-The installer does not automatically modify UFW or a cloud firewall. After a
-successful installation it prints the exact selected protocol ports and the
-corresponding UFW commands.
+When UFW or firewalld is active, the installer adds allow rules for the
+installed protocol ports (and TCP 2096 and 80 for the subscription). It never
+enables or resets a firewall or changes default policies, and leaves custom
+nftables/iptables rules alone. Added rules are recorded in
+`/etc/hkit/firewall-rules` and `hkit uninstall` removes only those. Use
+`--no-firewall` to skip this step. Cloud security groups still have to be
+opened in your provider's console.
 
 ## Release mapping
 
