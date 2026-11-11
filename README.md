@@ -51,7 +51,7 @@ apt-get update && apt-get install -y curl
 ### 方式 A：安装全部协议
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.3/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.4/install.sh | sudo bash
 ```
 
 ### 方式 B：只安装指定协议（推荐）
@@ -59,7 +59,7 @@ curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.3/install.sh | 
 例如只装 Reality 和 Hysteria2：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.3/install.sh | \
+curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.4/install.sh | \
   sudo bash -s -- --protocols reality,hysteria2
 ```
 
@@ -68,7 +68,7 @@ curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.3/install.sh | 
 ### 方式 C：用菜单选择
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.3/install.sh | \
+curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.4/install.sh | \
   sudo bash -s -- --interactive
 ```
 
@@ -249,7 +249,7 @@ sudo hkit uninstall
 示例：Reality 改用 8080 端口，并换一个目标站点：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.3/install.sh | \
+curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.4/install.sh | \
   sudo bash -s -- --protocols reality --reality-port 8080 \
   --reality-target www.microsoft.com:443 --reality-sni www.microsoft.com
 ```
@@ -302,7 +302,7 @@ VPS 访问不了候选站点，或者你指定的站点不满足 Reality 要求�
 
 ## 安全说明
 
-- 安装脚本固定在具体版本标签（如 `v1.0.3`），不会跟随 `main` 分支变化。
+- 安装脚本固定在具体版本标签（如 `v1.0.4`），不会跟随 `main` 分支变化。
 - 正式发布包使用 Minisign 签名，签名公钥和校验脚本的 SHA-256 写死在 `install.sh` 中；签名、哈希、文件清单任何一项不符都会在执行安装代码前终止。
 - 不修改 SSH、UFW、BBR/sysctl 等系统设置。
 - 各协议服务使用独立的低权限系统用户运行，并禁止代理流量访问服务器本机和内网地址（包括云厂商元数据地址）。

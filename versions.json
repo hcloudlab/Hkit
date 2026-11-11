@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "stable": "1.0.3",
+  "stable": "1.0.4",
   "releases": {
     "1.0.0": {
       "core_commit": "3a4229449281f0edf770fed8c926aeba87b5e17c",
@@ -19,6 +19,11 @@
     },
     "1.0.3": {
       "core_commit": "545a258bdd9fb9d4d6078504b23779994196e591",
+      "format_schema": 2,
+      "minisign_key_id": "A7178F5CF94B2F7D"
+    },
+    "1.0.4": {
+      "core_commit": "17d1979945dc4f5e1dabffc70b7f9d6ec36f94d4",
       "format_schema": 2,
       "minisign_key_id": "A7178F5CF94B2F7D"
     }

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.4
+
+- 修复 Clash Verge、FlClash 等 Mihomo 内核客户端连不上 Reality（显示超时）的问题：新版 Xray 默认拒绝 Mihomo 上报的客户端版本，Hkit 现在在服务端放行 Mihomo（`minClientVer: 1.8.2`）。小火箭、v2rayN 不受影响。
+- Clash 配置的 Reality 节点加入 X25519MLKEM768 支持，提前兼容后续 Xray 版本。
+- 已经装了 1.0.2 / 1.0.3 的服务器：执行 `sudo hkit uninstall` 后用新命令重装即可，客户端需要重新导入订阅。
+- 配套 Core 1.0.4。
+
 ## 1.0.3
 
 - 自动放行防火墙端口：UFW 或 firewalld 已启用时，只放行所装协议的端口和订阅需要的 2096/TCP、80/TCP；不启用、不重置防火墙；卸载时只删除这些规则。`--no-firewall` 关闭。

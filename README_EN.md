@@ -29,18 +29,18 @@ On a clean Ubuntu 24.04 x86_64 server, install `curl` if it is not already
 available, then run the version-pinned URL installer:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.3/install.sh | \
+curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.4/install.sh | \
   sudo bash -s -- --public-ipv4 YOUR_PUBLIC_IPV4
 ```
 
 Select protocols through the same verified installer:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.3/install.sh | \
+curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.4/install.sh | \
   sudo bash -s -- --public-ipv4 YOUR_PUBLIC_IPV4 --protocols reality,xhttp
 ```
 
-The bootstrap URL is pinned to the immutable `v1.0.3` tag rather than
+The bootstrap URL is pinned to the immutable `v1.0.4` tag rather than
 `main`. The bootstrap retrieves its public key, verifier, and three release
 assets from that same fixed version, verifies their pinned identities and the
 formal Minisign signature, and only then executes the packaged Core installer.

@@ -50,8 +50,8 @@ spec.loader.exec_module(module)
 root = Path(sys.argv[2])
 components = {"xray":"26.7.28","hysteria2":"2.6.5","mieru":"3.37.0","sing-box":"1.12.0","caddy":"2.10.2"}
 release = {
-    "schema_version":1,"release_id":"rel-1.0.3","release_version":"1.0.3",
-    "state_schema_version":1,"directory":"/opt/hkit/releases/1.0.3",
+    "schema_version":1,"release_id":"rel-1.0.4","release_version":"1.0.4",
+    "state_schema_version":1,"directory":"/opt/hkit/releases/1.0.4",
     "components":{name:{"version":version,"path":f"/opt/hkit/components/{name}/{version}/{name}"}
                   for name, version in components.items()},
 }
@@ -74,7 +74,7 @@ with tarfile.open(archive_path, "w", format=tarfile.USTAR_FORMAT) as archive:
 content = archive_path.read_bytes()
 manifest = {
     "manifest_schema":1,"product":"hkit-core",
-    "release":{"id":"rel-1.0.3","version":"1.0.3","format_schema":2,"state_schema_min":1,"state_schema_max":1},
+    "release":{"id":"rel-1.0.4","version":"1.0.4","format_schema":2,"state_schema_min":1,"state_schema_max":1},
     "artifact":{"filename":"hkit-core.tar","sha256":hashlib.sha256(content).hexdigest(),"size":len(content)},
     "components":components,
 }
@@ -150,20 +150,20 @@ PY
     -x "$TEST_RELEASE/manifest.json.minisig" -q >/dev/null 2>&1
 }
 
-@test "repository pins the formal Hkit 1.0.3 signing identity" {
+@test "repository pins the formal Hkit 1.0.4 signing identity" {
   project_root="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   [ "$(shasum -a 256 "$project_root/keys/hkit-core.pub" | awk '{print $1}')" = \
     de9828796091fad0a1568ec1af2f5f4825c97b50675d84228991f83177f36e74 ]
   grep -F 'minisign public key A7178F5CF94B2F7D' "$project_root/keys/hkit-core.pub"
-  [ "$(jq -r '.stable' "$project_root/versions.json")" = 1.0.3 ]
-  [ "$(jq -r '.releases["1.0.3"].minisign_key_id' "$project_root/versions.json")" = \
+  [ "$(jq -r '.stable' "$project_root/versions.json")" = 1.0.4 ]
+  [ "$(jq -r '.releases["1.0.4"].minisign_key_id' "$project_root/versions.json")" = \
     A7178F5CF94B2F7D ]
   grep -F 'readonly HKIT_PUBLIC_KEY_SHA256="de9828796091fad0a1568ec1af2f5f4825c97b50675d84228991f83177f36e74"' \
     "$project_root/install.sh"
 }
 
 @test "URL bootstrap is version pinned and works from standard input" {
-  grep -F 'readonly HKIT_VERSION="1.0.3"' "$TEST_REPO/install.sh"
+  grep -F 'readonly HKIT_VERSION="1.0.4"' "$TEST_REPO/install.sh"
   grep -F 'raw.githubusercontent.com/hcloudlab/Hkit/v${HKIT_VERSION}' "$TEST_REPO/install.sh"
   run grep -F 'raw.githubusercontent.com/hcloudlab/Hkit/main/' "$TEST_REPO/install.sh"
   [ "$status" -ne 0 ]
@@ -178,7 +178,7 @@ PY
   [ "$status" -eq 0 ]
   [ "$(sed -n '1p' "$TEST_CAPTURE")" = --release-source ]
   [ "$(sed -n '3p' "$TEST_CAPTURE")" = --release-version ]
-  [ "$(sed -n '4p' "$TEST_CAPTURE")" = 1.0.3 ]
+  [ "$(sed -n '4p' "$TEST_CAPTURE")" = 1.0.4 ]
   [ "$(sed -n '5p' "$TEST_CAPTURE")" = --trust-key ]
   grep -Fx -- 203.0.113.10 "$TEST_CAPTURE"
   grep -Fx -- anytls "$TEST_CAPTURE"
