@@ -111,5 +111,29 @@ class HkitSourceTests(unittest.TestCase):
                       'hkit-hysteria2.service', m.unit_content())
 
 
+
+class UfwCommentTests(unittest.TestCase):
+    def fake(self, added):
+        def run(cmd, check=True, input_text=None):
+            if cmd[:2] == ['ufw', 'status']:
+                return Mock(returncode=0, stdout='Status: active\n')
+            if cmd[:3] == ['ufw', 'show', 'added']:
+                return Mock(returncode=0, stdout=added)
+            raise AssertionError(f'unexpected mutation: {cmd}')
+        return run
+
+    def test_hkit_rule_with_comment_counts_as_present(self):
+        added = "Added user rules (see 'ufw status' for running firewall):\n" \
+                "ufw allow 8443/tcp comment 'Hkit'\nufw allow 8443/udp comment 'Hkit'\n"
+        with patch.object(m, 'run', side_effect=self.fake(added)), \
+             patch.object(m.shutil, 'which', return_value='/usr/sbin/ufw'):
+            self.assertTrue(m.ufw_has('8443/udp'))
+            self.assertFalse(m.ufw_add('8443/udp'))  # never re-added, so never owned
+
+    def test_prefix_of_another_port_is_not_a_match(self):
+        added = "ufw allow 84430/udp\nufw allow 8443/udp-extra\n"
+        with patch.object(m, 'run', side_effect=self.fake(added)):
+            self.assertFalse(m.ufw_has('8443/udp'))
+
 if __name__ == '__main__':
     unittest.main()
