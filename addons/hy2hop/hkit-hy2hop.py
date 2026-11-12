@@ -416,10 +416,17 @@ def ufw_active():
 
 
 def ufw_has(spec):
+    """True when an allow rule for spec exists, with or without a comment.
+
+    Hkit adds its rules as "ufw allow 8443/udp comment 'Hkit'". Matching only
+    the bare form re-added such a rule: ufw then dropped the comment and this
+    tool recorded the rule as its own, so restore would delete Hkit's rule."""
     p = run(['ufw', 'show', 'added'], False)
     if p.returncode:
         raise RuntimeError('无法读取 UFW 规则')
-    return any(line.strip() == 'ufw allow ' + spec for line in p.stdout.splitlines())
+    bare = 'ufw allow ' + spec
+    return any(line.strip() == bare or line.strip().startswith(bare + ' comment ')
+               for line in p.stdout.splitlines())
 
 
 def ufw_add(spec):
