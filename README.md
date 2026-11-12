@@ -223,6 +223,8 @@ sudo hkit uninstall
 
 输入 `yes` 确认后，会删除 Hkit 的全部服务、配置、证书和节点信息，并删除安装时自动添加的 UFW / firewalld 规则。手动放行的端口和云服务商安全组里的规则需要你自己关闭。
 
+如果装了 Hysteria2 端口跳跃配件，卸载 Hkit 前先执行 `sudo hkit-hy2hop restore`。
+
 ---
 
 ## 七、可选参数
@@ -257,6 +259,14 @@ curl -fsSL https://raw.githubusercontent.com/hcloudlab/Hkit/v1.0.4/install.sh | 
 > **Reality 目标站点默认自动选择**：安装时从 VPS 上逐个测试 NVIDIA、AMD、Intel、Samsung、Oracle、AWS 的官网，只保留同时满足 TLS 1.3（X25519）、HTTP/2、证书有效、不跳转到其他域名的站点，再选握手最快的一个。这样每台服务器选到的站点可能不同，不会所有人都用同一个。
 >
 > 手动指定时也会做同样的检查，不合格会直接报错。自选站点建议用离 VPS 近、非 Cloudflare 的大型网站。
+
+---
+
+## 配件
+
+| 配件 | 作用 |
+| --- | --- |
+| [Hysteria2 端口跳跃](addons/hy2hop/README.md) | 把一段 UDP 端口（默认 20000-30000）转发到 Hkit 的 Hysteria2，开机自动恢复，不修改 Hkit 本身 |
 
 ---
 

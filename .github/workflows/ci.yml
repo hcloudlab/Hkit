@@ -21,3 +21,14 @@ jobs:
           python3 -m py_compile lib/verify_release.py
           python3 -m json.tool versions.json >/dev/null
           bats tests/test_public_installer.bats
+
+  addon-hy2hop:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Hysteria2 port-hopping add-on
+        run: |
+          bash -n addons/hy2hop/bootstrap.sh
+          shellcheck addons/hy2hop/bootstrap.sh
+          python3 -m py_compile addons/hy2hop/hkit-hy2hop.py
+          cd addons/hy2hop && python3 -m unittest discover -s tests -v
